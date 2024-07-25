@@ -139,10 +139,16 @@ func (lto *lto) flags(ctx BaseModuleContext, flags Flags) Flags {
 		}
 
 		// If the module does not have a profile, be conservative and limit cross TU inline
-		// limit to 5 LLVM IR instructions, to balance binary size increase and performance.
+		// limit to 40 LLVM IR instructions, to balance binary size increase and performance.
 		if !ctx.isPgoCompile() && !ctx.isAfdoCompile() {
 			flags.Local.LdFlags = append(flags.Local.LdFlags,
-				"-Wl,-plugin-opt,-import-instr-limit=5")
+				"-Wl,-plugin-opt,-import-instr-limit=40")
+			flags.Local.LdFlags = append(flags.Local.LdFlags,
+				"-Wl,-mllvm,-inline-threshold=600")
+			flags.Local.LdFlags = append(flags.Local.LdFlags,
+				"-Wl,-mllvm,-inlinehint-threshold=750")
+			flags.Local.LdFlags = append(flags.Local.LdFlags,
+				"-Wl,-mllvm,-unroll-threshold=600")
 		}
 	}
 	return flags
@@ -179,7 +185,7 @@ func (lto *lto) Never() bool {
 }
 
 func GlobalThinLTO(ctx android.BaseModuleContext) bool {
-	return ctx.Config().IsEnvTrue("GLOBAL_THINLTO")
+	return !ctx.Config().IsEnvFalse("GLOBAL_THINLTO")
 }
 
 // Propagate lto requirements down from binaries
